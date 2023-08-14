@@ -91,7 +91,7 @@ class Player(PhysicsEntity):
         if self.animation.frame in {2, 10} and self.action == 'shoot':
             self.game.screenshake = max(10, self.game.screenshake)
             self.game.sfx['shoot'].play()
-            print(self.animation.frame)
+            # print(self.animation.frame)
 
         super().update(tilemap, movement=movement)
 
@@ -104,6 +104,11 @@ class Player(PhysicsEntity):
         if self.collisions['down']:
             self.air_time = 0
             self.jumps = 1
+
+        if pygame.mouse.get_pos()[0] < self.game.screen.get_width() // 2:
+            self.flip = True
+        else:
+            self.flip = False
 
         if self.air_time > 4:
             self.set_action('jump')
@@ -146,6 +151,5 @@ class Player(PhysicsEntity):
         return self.shooting
 
     def shoot(self, value):
-        if self.jumps >= 1:
-            self.shooting = value
+        self.shooting = value
 

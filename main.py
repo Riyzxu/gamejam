@@ -93,11 +93,10 @@ class Game:
             self.tilemap.render(self.outline_display, offset=render_scroll)
 
             if not self.dead:
-                print(self.player.is_shooting())
                 # if self.player.is_shooting():
                 #     self.player.render_hitbox(self.display, offset=render_scroll)
                 self.player.update(self.tilemap,
-                                   ((self.movement[1] - self.movement[0]) if not self.player.is_shooting() else 0, 0))
+                                   ((self.movement[1] - self.movement[0]), 0))
                 self.player.render(self.outline_display, offset=render_scroll)
 
             display_mask = pygame.mask.from_surface(self.outline_display)
@@ -110,25 +109,29 @@ class Game:
                     pygame.quit()
                     sys.exit()
 
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_x:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
                         self.player.shoot(True)
-                    if event.key == pygame.K_LEFT:
+
+                if event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 1:
+                        self.player.shoot(False)
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_a:
                         self.movement[0] = True
-                    if event.key == pygame.K_RIGHT:
+                    if event.key == pygame.K_d:
                         self.movement[1] = True
-                    if event.key == pygame.K_UP:
+                    if event.key == pygame.K_SPACE:
                         if self.player.jump():
                             # self.sfx['jump'].play()
                             pass
 
                 if event.type == pygame.KEYUP:
-                    if event.key == pygame.K_LEFT:
+                    if event.key == pygame.K_a:
                         self.movement[0] = False
-                    if event.key == pygame.K_RIGHT:
+                    if event.key == pygame.K_d:
                         self.movement[1] = False
-                    if event.key == pygame.K_x:
-                        self.player.shoot(False)
 
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2,
                                   random.random() * self.screenshake - self.screenshake / 2)
