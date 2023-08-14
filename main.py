@@ -1,6 +1,7 @@
 import pygame
 import sys
 import random
+
 from scripts.entities import Player
 from scripts.tilemap import Tilemap
 from scripts.utils import Animation, load_image, load_images
@@ -11,13 +12,14 @@ from scripts.dust import Dusts
 class Game:
     def __init__(self):
         pygame.init()
+        pygame.mouse.set_visible(False)
 
-        pygame.display.set_caption('Game name here')
-        self.screen = pygame.display.set_mode((640, 480))
-        self.outline_display = pygame.Surface((320, 240), pygame.SRCALPHA)
-        self.display = pygame.Surface((320, 240))
+        pygame.display.set_caption('Risk of Lame')
+        self.screen = pygame.display.set_mode((854, 480))
+        self.outline_display = pygame.Surface((427, 240), pygame.SRCALPHA)
+        self.display = pygame.Surface((427, 240))
 
-        self.clock = pygame.time.Clock()
+        self.clock = FPS()
 
         self.movement = [False, False]
 
@@ -33,11 +35,14 @@ class Game:
             'background': load_image('background.png'),
             'stars': load_images('stars'),
             'dust': load_images('dust'),
+            'cursor': load_image('cursor.png')
         }
 
         self.sfx = {
             'shoot': pygame.mixer.Sound('data/sfx/shoot.wav'),
         }
+
+        self.cursor_img_rect = self.assets['cursor'].get_rect()
 
         self.player = Player(self, (0, 0), (6, 11))
         self.tilemap = Tilemap(self, tile_size=16)
@@ -74,7 +79,6 @@ class Game:
 
     def run(self):
         while True:
-
             self.outline_display.fill((0, 0, 0, 0))
             # self.display.blit(self.assets['background'], (0, 0))
             self.display.fill((35, 39, 42))
@@ -138,8 +142,24 @@ class Game:
 
             self.display.blit(self.outline_display, (0, 0))
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
+
+            self.cursor_img_rect.center = pygame.mouse.get_pos()
+            self.screen.blit(self.assets['cursor'], self.cursor_img_rect)
+            self.clock.render(self.screen)
+
             pygame.display.update()
-            self.clock.tick(60)
+            self.clock.clock.tick(60)
+
+
+class FPS:
+    def __init__(self):
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font("data/font.ttf", 34)
+        self.text = self.font.render(str(self.clock.get_fps()), True, (0, 0, 0, 100))
+
+    def render(self, display):
+        self.text = self.font.render(str(int(self.clock.get_fps())), False, (255, 255, 255, 100))
+        display.blit(self.text, (10, 5))
 
 
 Game().run()
