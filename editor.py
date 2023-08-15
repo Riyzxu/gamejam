@@ -23,6 +23,8 @@ class Editor:
             'grass': load_images('tiles/grass'),
             'pillar': load_images('tiles/pillar'),
             'platform': load_images('tiles/platform'),
+            'rope': load_images('tiles/rope'),
+            'rope-platform': load_images('tiles/rope_platform'),
         }
 
         self.movement = [False, False, False, False]

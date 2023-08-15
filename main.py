@@ -1,3 +1,5 @@
+import time
+
 import pygame
 import sys
 import random
@@ -22,20 +24,25 @@ class Game:
         self.clock = FPS()
 
         self.movement = [False, False]
+        self.vertical_movement = [False, False]
 
         self.assets = {
             'default': load_images('tiles/default'),
             'grass': load_images('tiles/grass'),
             'pillar': load_images('tiles/pillar'),
             'platform': load_images('tiles/platform'),
+            'rope': load_images('tiles/rope'),
+            'rope-platform': load_images('tiles/rope_platform'),
             'player/idle': Animation(load_images('entities/player/idle')),
             'player/run': Animation(load_images('entities/player/run'), img_dur=5),
             'player/jump': Animation(load_images('entities/player/jump')),
             'player/shoot': Animation(load_images('entities/player/shoot'), img_dur=6),
+            'player/climb': Animation(load_images('entities/player/climb'), img_dur=10),
             'background': load_image('background.png'),
             'stars': load_images('stars'),
             'dust': load_images('dust'),
-            'cursor': load_image('cursor.png')
+            'cursor': load_image('cursor.png'),
+
         }
 
         self.sfx = {
@@ -52,12 +59,16 @@ class Game:
 
         self.leaf_spawners = []
         self.enemies = []
+        self.ladders = []
 
         self.scroll = [0, 0]
         self.dead = 0
 
         self.load_level(0)
         self.screenshake = 0
+        self.near_rope = False
+        self.on_rope = False
+        self.current_rope = {}
 
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
@@ -74,11 +85,16 @@ class Game:
         #     else:
         #         self.enemies.append(Enemy(self, spawner['pos'], (8, 15)))
 
+        self.ladders = []
+        for ladder in self.tilemap.extract([('rope', 0), ('rope', 1), ('rope', 2)], keep=True):
+            self.ladders.append(pygame.Rect(ladder['pos'][0], ladder['pos'][1], 16, 16))
+
         self.scroll = [0, 0]
         self.dead = 0
 
     def run(self):
         while True:
+            self.near_rope = False
             self.outline_display.fill((0, 0, 0, 0))
             # self.display.blit(self.assets['background'], (0, 0))
             self.display.fill((35, 39, 42))
@@ -99,9 +115,19 @@ class Game:
             if not self.dead:
                 # if self.player.is_shooting():
                 #     self.player.render_hitbox(self.display, offset=render_scroll)
-                self.player.update(self.tilemap,
-                                   ((self.movement[1] - self.movement[0]), 0))
+
+                self.player.update(
+                    self.tilemap,
+                    ((self.movement[1] - self.movement[0]) if not self.on_rope else 0, (self.vertical_movement[1] - self.vertical_movement[0]))
+                )
                 self.player.render(self.outline_display, offset=render_scroll)
+
+                signals, self.current_rope = self.player.signal_manager()
+
+                for signal in signals:
+                    match signal:
+                        case "on_rope":
+                            self.near_rope = True
 
             display_mask = pygame.mask.from_surface(self.outline_display)
             display_sillhoutte = display_mask.to_surface(setcolor=(0, 0, 0, 50), unsetcolor=(0, 0, 0, 0))
@@ -122,20 +148,36 @@ class Game:
                         self.player.shoot(False)
 
                 if event.type == pygame.KEYDOWN:
+                    if self.near_rope and event.key == pygame.K_w:
+                        self.player.pos[0] = self.current_rope['pos'][0] * 16 + 4
+                        self.on_rope = True
+                        self.player.disable_gravity()
+
+                    if event.key == pygame.K_SPACE:
+                        if self.player.jump():
+                            self.on_rope = False
+                            # self.sfx['jump'].play()
+
                     if event.key == pygame.K_a:
                         self.movement[0] = True
                     if event.key == pygame.K_d:
                         self.movement[1] = True
-                    if event.key == pygame.K_SPACE:
-                        if self.player.jump():
-                            # self.sfx['jump'].play()
-                            pass
+                    if self.on_rope:
+                        if event.key == pygame.K_w:
+                            self.vertical_movement[0] = True
+                        if event.key == pygame.K_s:
+                            self.vertical_movement[1] = True
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_a:
                         self.movement[0] = False
                     if event.key == pygame.K_d:
                         self.movement[1] = False
+
+                    if event.key == pygame.K_w:
+                        self.vertical_movement[0] = False
+                    if event.key == pygame.K_s:
+                        self.vertical_movement[1] = False
 
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2,
                                   random.random() * self.screenshake - self.screenshake / 2)

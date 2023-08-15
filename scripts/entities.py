@@ -85,6 +85,9 @@ class Player(PhysicsEntity):
         self.air_time = 0
         self.jumps = 1
         self.shooting = False
+        self.signals = {}
+        self.gravity = True
+        self.rope_check = None
 
     def update(self, tilemap, movement=(0, 0)):
         self.anim_offset = [0, 0]
@@ -97,7 +100,7 @@ class Player(PhysicsEntity):
 
         self.air_time += 1
 
-        if self.air_time > 120:
+        if self.air_time > 120 and self.gravity:
             if not self.game.dead:
                 self.game.screenshake = max(16, self.game.screenshake)
 
@@ -110,7 +113,11 @@ class Player(PhysicsEntity):
         else:
             self.flip = False
 
-        if self.air_time > 4:
+        if not self.gravity:
+            self.velocity[1] = 0
+            self.air_time = 0
+            self.set_action('climb')
+        elif self.air_time > 4:
             self.set_action('jump')
         elif self.shooting:
             self.set_action('shoot')
@@ -131,8 +138,31 @@ class Player(PhysicsEntity):
         else:
             self.velocity[0] = min(self.velocity[0] + 0.1, 0)
 
+        # check if the tile the player is standing on is a rope
+        self.rope_check = tilemap.entity_check((self.rect().centerx, self.rect().centery), 'rope')
+        if self.rope_check:
+            self.send_signal('on_rope')
+        else:
+            self.remove_signal('on_rope')
+            self.gravity = True
+
     def render(self, surf, offset=(0, 0)):
         super().render(surf, offset=offset)
+
+    def disable_gravity(self):
+        self.gravity = False
+
+    def remove_signal(self, name, value=False):
+        try:
+            del self.signals[name]
+        except KeyError:
+            pass
+
+    def send_signal(self, name, value=True):
+        self.signals[name] = True
+
+    def signal_manager(self):
+        return self.signals, self.rope_check
 
     def render_hitbox(self, surf, offset=(0, 0)):
         if self.flip:
@@ -141,6 +171,11 @@ class Player(PhysicsEntity):
             surf.blit(self.gun.hitbox, (self.pos[0] - offset[0] + self.size[1], self.pos[1] - offset[1]))
 
     def jump(self):
+        if not self.gravity:
+            self.velocity[1] = -3
+            self.gravity = True
+            self.air_time = 5
+            return True
         if self.jumps:
             self.velocity[1] = -3
             self.jumps -= 1
@@ -152,4 +187,3 @@ class Player(PhysicsEntity):
 
     def shoot(self, value):
         self.shooting = value
-
