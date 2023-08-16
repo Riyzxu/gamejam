@@ -13,8 +13,8 @@ class Editor:
         pygame.init()
 
         pygame.display.set_caption('editor')
-        self.screen = pygame.display.set_mode((640, 480))
-        self.display = pygame.Surface((320, 240))
+        self.screen = pygame.display.set_mode((854, 480))
+        self.display = pygame.Surface((427, 240))
 
         self.clock = pygame.time.Clock()
 
@@ -23,6 +23,8 @@ class Editor:
             'grass': load_images('tiles/grass'),
             'pillar': load_images('tiles/pillar'),
             'platform': load_images('tiles/platform'),
+            'rope': load_images('tiles/rope'),
+            'spawners': load_images('tiles/spawners'),
         }
 
         self.movement = [False, False, False, False]

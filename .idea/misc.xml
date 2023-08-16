@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="Black">
+    <option name="sdkUUID" value="4f825619-8ba9-4a7f-9de6-c87104682df3" />
+  </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (GameJam-Game)" project-jdk-type="Python SDK" />
 </project>
