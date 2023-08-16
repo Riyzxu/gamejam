@@ -113,6 +113,11 @@ class Player(PhysicsEntity):
         else:
             self.flip = False
 
+        if self.air_time > 200:
+            if not self.game.dead:
+                self.game.screenshake = max(16, self.game.screenshake)
+            self.game.dead = 1
+
         if not self.gravity:
             self.velocity[1] = 0
             self.air_time = 0

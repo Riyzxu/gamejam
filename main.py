@@ -32,7 +32,6 @@ class Game:
             'pillar': load_images('tiles/pillar'),
             'platform': load_images('tiles/platform'),
             'rope': load_images('tiles/rope'),
-            'rope-platform': load_images('tiles/rope_platform'),
             'player/idle': Animation(load_images('entities/player/idle')),
             'player/run': Animation(load_images('entities/player/run'), img_dur=5),
             'player/jump': Animation(load_images('entities/player/jump')),
@@ -59,12 +58,12 @@ class Game:
 
         self.leaf_spawners = []
         self.enemies = []
-        self.ladders = []
 
         self.scroll = [0, 0]
         self.dead = 0
+        self.level = 0
 
-        self.load_level(0)
+        self.load_level(self.level)
         self.screenshake = 0
         self.near_rope = False
         self.on_rope = False
@@ -85,11 +84,13 @@ class Game:
         #     else:
         #         self.enemies.append(Enemy(self, spawner['pos'], (8, 15)))
 
-        self.ladders = []
-        for ladder in self.tilemap.extract([('rope', 0), ('rope', 1), ('rope', 2)], keep=True):
-            self.ladders.append(pygame.Rect(ladder['pos'][0], ladder['pos'][1], 16, 16))
+        for spawner in self.tilemap.extract([('spawners', 0)]):
+            if spawner['variant'] == 0:
+                self.player.pos = spawner['pos']
+                self.player.air_time = 0
 
-        self.scroll = [0, 0]
+        self.scroll[0] += self.player.rect().centerx - self.display.get_width() / 2
+        self.scroll[1] += self.player.rect().centery - self.display.get_height() / 2
         self.dead = 0
 
     def run(self):
@@ -98,6 +99,11 @@ class Game:
             self.outline_display.fill((0, 0, 0, 0))
             # self.display.blit(self.assets['background'], (0, 0))
             self.display.fill((35, 39, 42))
+
+            if self.dead:
+                self.dead += 1
+                if self.dead > 40:
+                    self.load_level(self.level)
 
             self.screenshake = max(0, self.screenshake - 1)
 
@@ -178,6 +184,10 @@ class Game:
                         self.vertical_movement[0] = False
                     if event.key == pygame.K_s:
                         self.vertical_movement[1] = False
+
+                    if not self.on_rope:
+                        self.vertical_movement = [False, False]
+
 
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2,
                                   random.random() * self.screenshake - self.screenshake / 2)
