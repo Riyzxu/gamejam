@@ -4,11 +4,12 @@ import pygame
 import sys
 import random
 
-from scripts.entities import Player
+from scripts.entities import Player, Ruhaan
 from scripts.tilemap import Tilemap
 from scripts.utils import Animation, load_image, load_images
 from scripts.stars import Stars
 from scripts.dust import Dusts
+from scripts.spark import Spark
 
 
 class Game:
@@ -26,6 +27,17 @@ class Game:
         self.movement = [False, False]
         self.vertical_movement = [False, False]
 
+        self.colors = [
+            (230, 74, 34),
+            (230, 74, 34),
+            (230, 74, 34),
+
+            (245, 155, 66),
+            (245, 155, 66),
+
+            (255, 255, 255),
+        ]
+
         self.assets = {
             'default': load_images('tiles/default'),
             'grass': load_images('tiles/grass'),
@@ -37,6 +49,8 @@ class Game:
             'player/jump': Animation(load_images('entities/player/jump')),
             'player/shoot': Animation(load_images('entities/player/shoot'), img_dur=6),
             'player/climb': Animation(load_images('entities/player/climb'), img_dur=10),
+            'ruhaan/idle': Animation(load_images('entities/ruhaan/idle')),
+            'ruhaan/run': Animation(load_images('entities/ruhaan/run'), img_dur=5),
             'background': load_image('background.png'),
             'stars': load_images('stars'),
             'dust': load_images('dust'),
@@ -56,8 +70,8 @@ class Game:
         self.stars = Stars(self.assets['stars'], count=32)
         self.dust = Dusts(self.assets['dust'], count=32)
 
-        self.leaf_spawners = []
         self.enemies = []
+        self.sparks = []
 
         self.scroll = [0, 0]
         self.dead = 0
@@ -67,7 +81,9 @@ class Game:
         self.screenshake = 0
         self.near_rope = False
         self.on_rope = False
-        self.current_rope = {}
+
+        self.scroll[0] += self.player.rect().centerx - self.display.get_width() / 2
+        self.scroll[1] += self.player.rect().centery - self.display.get_height() / 2
 
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
@@ -75,22 +91,20 @@ class Game:
         # self.leaf_spawners = []
         # for tree in self.tilemap.extract([('large_decor', 2)], keep=True):
         #     self.leaf_spawners.append(pygame.Rect(4 + tree['pos'][0], 4 + tree['pos'][1], 23, 13))
-        #
-        # self.enemies = []
+
+        self.enemies = []
+        for spawner in self.tilemap.extract([('spawners', 0), ('spawners', 1)]):
+            if spawner['variant'] == 0:
+                self.player.pos = spawner['pos']
+                self.player.air_time = 0
+            else:
+                self.enemies.append(Ruhaan(self, spawner['pos'], (16, 16)))
+
         # for spawner in self.tilemap.extract([('spawners', 0), ('spawners', 1)]):
         #     if spawner['variant'] == 0:
         #         self.player.pos = spawner['pos']
         #         self.player.air_time = 0
-        #     else:
-        #         self.enemies.append(Enemy(self, spawner['pos'], (8, 15)))
 
-        for spawner in self.tilemap.extract([('spawners', 0)]):
-            if spawner['variant'] == 0:
-                self.player.pos = spawner['pos']
-                self.player.air_time = 0
-
-        self.scroll[0] += self.player.rect().centerx - self.display.get_width() / 2
-        self.scroll[1] += self.player.rect().centery - self.display.get_height() / 2
         self.dead = 0
 
     def run(self):
@@ -118,15 +132,23 @@ class Game:
 
             self.tilemap.render(self.outline_display, offset=render_scroll)
 
-            if not self.dead:
-                # if self.player.is_shooting():
-                #     self.player.render_hitbox(self.display, offset=render_scroll)
+            for enemy in self.enemies.copy():
+                kill = enemy.update(self.tilemap, (0, 0))
+                enemy.render(self.outline_display, offset=render_scroll)
+                if kill:
+                    self.enemies.remove(enemy)
 
+            if not self.dead:
                 self.player.update(
                     self.tilemap,
-                    ((self.movement[1] - self.movement[0]) if not self.on_rope else 0, (self.vertical_movement[1] - self.vertical_movement[0]))
+                    ((self.movement[1] - self.movement[0]) if not self.on_rope else 0,
+                     (self.vertical_movement[1] - self.vertical_movement[0]))
                 )
+
                 self.player.render(self.outline_display, offset=render_scroll)
+
+                # if self.player.is_shooting():
+                #     self.player.render_hitbox(self.display, offset=render_scroll)
 
                 signals, self.current_rope = self.player.signal_manager()
 
@@ -134,6 +156,17 @@ class Game:
                     match signal:
                         case "on_rope":
                             self.near_rope = True
+
+                for enemy in self.enemies:
+                    if self.player.rect().colliderect(enemy.rect()):
+                        self.screenshake = max(32, self.screenshake)
+                        self.dead = 1
+
+            for spark in self.sparks.copy():
+                kill = spark.update()
+                spark.render(self.outline_display, random.choice(self.colors), offset=render_scroll)
+                if kill:
+                    self.sparks.remove(spark)
 
             display_mask = pygame.mask.from_surface(self.outline_display)
             display_sillhoutte = display_mask.to_surface(setcolor=(0, 0, 0, 50), unsetcolor=(0, 0, 0, 0))
@@ -187,7 +220,6 @@ class Game:
 
                     if not self.on_rope:
                         self.vertical_movement = [False, False]
-
 
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2,
                                   random.random() * self.screenshake - self.screenshake / 2)

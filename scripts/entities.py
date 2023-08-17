@@ -2,7 +2,7 @@ import math
 import random
 import pygame
 from scripts.weapon import Weapon
-
+from scripts.spark import Spark
 
 class PhysicsEntity:
     def __init__(self, game, e_type, pos, size):
@@ -116,7 +116,7 @@ class Player(PhysicsEntity):
         if self.air_time > 200:
             if not self.game.dead:
                 self.game.screenshake = max(16, self.game.screenshake)
-            self.game.dead = 1
+                self.game.dead = 1
 
         if not self.gravity:
             self.velocity[1] = 0
@@ -126,13 +126,13 @@ class Player(PhysicsEntity):
             self.set_action('jump')
         elif self.shooting:
             self.set_action('shoot')
-            self.gun.update(self.pos.copy())
             if self.flip:
-                self.gun.damage(10, False)
+                self.gun.flip = False
                 self.anim_offset = [-9, -1]
             else:
-                self.gun.damage(10, True)
+                self.gun.flip = True
                 self.anim_offset = [-3, -1]
+            self.gun.update(self.pos, self.size)
         elif movement[0] != 0:
             self.set_action('run')
         else:
@@ -154,6 +154,13 @@ class Player(PhysicsEntity):
     def render(self, surf, offset=(0, 0)):
         super().render(surf, offset=offset)
 
+    def render_hitbox(self, surf, offset=(0, 0)):
+        pygame.draw.rect(
+            surf,
+            (0, 0, 0),
+            pygame.Rect((self.gun.rect_pos[0] - offset[0], self.gun.rect_pos[1] - offset[1]), self.gun.hitbox_size)
+        )
+
     def disable_gravity(self):
         self.gravity = False
 
@@ -168,12 +175,6 @@ class Player(PhysicsEntity):
 
     def signal_manager(self):
         return self.signals, self.rope_check
-
-    def render_hitbox(self, surf, offset=(0, 0)):
-        if self.flip:
-            surf.blit(self.gun.hitbox, (self.pos[0] - offset[0] - self.gun.hitbox_size[0], self.pos[1] - offset[1]))
-        else:
-            surf.blit(self.gun.hitbox, (self.pos[0] - offset[0] + self.size[1], self.pos[1] - offset[1]))
 
     def jump(self):
         if not self.gravity:
@@ -192,3 +193,42 @@ class Player(PhysicsEntity):
 
     def shoot(self, value):
         self.shooting = value
+
+
+class Ruhaan(PhysicsEntity):
+    def __init__(self, game, pos, size):
+        super().__init__(game, 'ruhaan', pos, size)
+
+        self.walking = 0
+
+    def update(self, tilemap, movement=(0, 0)):
+        if self.walking:
+            if tilemap.solid_check((self.rect().centerx + (-7 if self.flip else 7), self.pos[1] + 23)):
+                if self.collisions['right'] or self.collisions['left']:
+                    self.flip = not self.flip
+                else:
+                    movement = (movement[0] - 0.5 if self.flip else 0.5, movement[1])
+            else:
+                self.flip = not self.flip
+            self.walking = max(0, self.walking - 1)
+
+        elif random.random() < 0.01:
+            self.walking = random.randint(30, 120)
+
+        super().update(tilemap, movement=movement)
+
+        if movement[0] != 0:
+            self.set_action('run')
+        else:
+            self.set_action('idle')
+
+        if self.game.player.gun.rect().colliderect(self.rect()) and self.game.player.is_shooting():
+            self.game.screenshake = max(16, self.game.screenshake)
+            for i in range(30):
+                angle = random.random() * math.pi * 2
+                speed = random.random() * 5
+                self.game.sparks.append(Spark(self.rect().center, angle, 2 + random.random()))
+            return True
+
+    def render(self, surf, offset=(0, 0)):
+        super().render(surf, offset=offset)
