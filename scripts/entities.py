@@ -84,7 +84,7 @@ class Player(PhysicsEntity):
 
         self.air_time = 0
         self.jumps = 1
-        self.shooting = False
+        self.action_input = False
         self.signals = {}
         self.gravity = True
         self.rope_check = None
@@ -124,15 +124,12 @@ class Player(PhysicsEntity):
             self.set_action('climb')
         elif self.air_time > 4:
             self.set_action('jump')
-        elif self.shooting:
+        elif self.action_input:
             self.set_action('shoot')
             if self.flip:
-                self.gun.flip = False
                 self.anim_offset = [-9, -1]
             else:
-                self.gun.flip = True
                 self.anim_offset = [-3, -1]
-            self.gun.update(self.pos, self.size)
         elif movement[0] != 0:
             self.set_action('run')
         else:
@@ -150,6 +147,8 @@ class Player(PhysicsEntity):
         else:
             self.remove_signal('on_rope')
             self.gravity = True
+
+        self.gun.update(self.pos, self.size, self.flip)
 
     def render(self, surf, offset=(0, 0)):
         super().render(surf, offset=offset)
@@ -189,10 +188,10 @@ class Player(PhysicsEntity):
             return True
 
     def is_shooting(self):
-        return self.shooting
+        return self.action == 'shoot'
 
-    def shoot(self, value):
-        self.shooting = value
+    def set_action_input(self, value):
+        self.action_input = value
 
 
 class Ruhaan(PhysicsEntity):

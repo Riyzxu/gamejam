@@ -180,11 +180,11 @@ class Game:
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
-                        self.player.shoot(True)
+                        self.player.set_action_input(True)
 
                 if event.type == pygame.MOUSEBUTTONUP:
                     if event.button == 1:
-                        self.player.shoot(False)
+                        self.player.set_action_input(False)
 
                 if event.type == pygame.KEYDOWN:
                     if self.near_rope and event.key == pygame.K_w:

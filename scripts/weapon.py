@@ -15,9 +15,10 @@ class Weapon:
     def rect(self):
         return pygame.Rect(self.rect_pos, self.hitbox_size)
 
-    def update(self, pos, size):
+    def update(self, pos, size, flip):
+        self.flip = flip
         self.rect_pos[1] = pos[1]
-        if not self.flip:
+        if self.flip:
             self.rect_pos[0] = pos[0] - self.hitbox_size[0]
         else:
             self.rect_pos[0] = pos[0] + size[1]
