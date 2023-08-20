@@ -13,6 +13,7 @@ from scripts.dust import Dusts
 from scripts.spark import Spark
 
 CRAZY_DEATH = False
+CRAZY_PARTICLE_AMOUNT = 100
 
 
 class Game:
@@ -128,7 +129,7 @@ class Game:
 
             if self.dead:
                 if CRAZY_DEATH:
-                    for i in range(100):
+                    for i in range(CRAZY_PARTICLE_AMOUNT):
                         angle = random.random() * math.pi * 2
                         speed = random.random() * 10
                         self.sparks.append(Spark(self.player.rect().center, angle, speed))
