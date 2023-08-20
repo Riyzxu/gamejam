@@ -85,6 +85,8 @@ class Game:
         self.scroll[0] += self.player.rect().centerx - self.display.get_width() / 2
         self.scroll[1] += self.player.rect().centery - self.display.get_height() / 2
 
+        self.fps = 60
+
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
 
@@ -173,6 +175,10 @@ class Game:
             for offset in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                 self.display.blit(display_sillhoutte, offset)
 
+            if not self.near_rope:
+                self.on_rope = False
+                self.vertical_movement = [False, False]
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -188,9 +194,9 @@ class Game:
 
                 if event.type == pygame.KEYDOWN:
                     if self.near_rope and event.key == pygame.K_w:
+                        self.player.disable_gravity()
                         self.player.pos[0] = self.current_rope['pos'][0] * 16 + 4
                         self.on_rope = True
-                        self.player.disable_gravity()
 
                     if event.key == pygame.K_SPACE:
                         if self.player.jump():
@@ -218,9 +224,6 @@ class Game:
                     if event.key == pygame.K_s:
                         self.vertical_movement[1] = False
 
-                    if not self.on_rope:
-                        self.vertical_movement = [False, False]
-
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2,
                                   random.random() * self.screenshake - self.screenshake / 2)
 
@@ -232,7 +235,7 @@ class Game:
             self.clock.render(self.screen)
 
             pygame.display.update()
-            self.clock.clock.tick(60)
+            self.clock.clock.tick(self.fps)
 
 
 class FPS:
