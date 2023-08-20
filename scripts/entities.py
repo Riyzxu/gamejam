@@ -90,13 +90,13 @@ class Player(PhysicsEntity):
         self.rope_check = None
 
     def update(self, tilemap, movement=(0, 0)):
+        super().update(tilemap, movement=movement)
+
         self.anim_offset = [0, 0]
         if self.animation.frame in {2, 10} and self.action == 'shoot':
             self.game.screenshake = max(10, self.game.screenshake)
             self.game.sfx['shoot'].play()
             # print(self.animation.frame)
-
-        super().update(tilemap, movement=movement)
 
         self.air_time += 1
 
@@ -115,7 +115,7 @@ class Player(PhysicsEntity):
 
         if self.air_time > 200:
             if not self.game.dead:
-                self.game.screenshake = max(16, self.game.screenshake)
+                self.game.screenshake = max(32, self.game.screenshake)
                 self.game.dead = 1
 
         if not self.gravity:

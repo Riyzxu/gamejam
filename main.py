@@ -3,6 +3,7 @@ import time
 import pygame
 import sys
 import random
+import math
 
 from scripts.entities import Player, Ruhaan
 from scripts.tilemap import Tilemap
@@ -10,6 +11,8 @@ from scripts.utils import Animation, load_image, load_images
 from scripts.stars import Stars
 from scripts.dust import Dusts
 from scripts.spark import Spark
+
+CRAZY_DEATH = False
 
 
 class Game:
@@ -107,6 +110,7 @@ class Game:
         #         self.player.pos = spawner['pos']
         #         self.player.air_time = 0
 
+        self.transition = 0
         self.dead = 0
 
     def run(self):
@@ -116,9 +120,22 @@ class Game:
             # self.display.blit(self.assets['background'], (0, 0))
             self.display.fill((35, 39, 42))
 
+            if self.dead == 1:
+                for i in range(100):
+                    angle = random.random() * math.pi * 2
+                    speed = random.random() * 10
+                    self.sparks.append(Spark(self.player.rect().center, angle, speed))
+
             if self.dead:
+                if CRAZY_DEATH:
+                    for i in range(100):
+                        angle = random.random() * math.pi * 2
+                        speed = random.random() * 10
+                        self.sparks.append(Spark(self.player.rect().center, angle, speed))
                 self.dead += 1
-                if self.dead > 40:
+                if self.dead >= 10:
+                    self.transition = min(100, self.transition + 1)
+                if self.dead > 100:
                     self.load_level(self.level)
 
             self.screenshake = max(0, self.screenshake - 1)
@@ -161,11 +178,15 @@ class Game:
 
                 for enemy in self.enemies:
                     if self.player.rect().colliderect(enemy.rect()):
-                        self.screenshake = max(32, self.screenshake)
+                        self.screenshake = max(64, self.screenshake)
                         self.dead = 1
 
             for spark in self.sparks.copy():
                 kill = spark.update()
+                if self.dead:
+                    self.colors = [(0, 0, 0), (50, 50, 50), (25, 25, 25)]
+                else:
+                    self.colors = [(230, 74, 34), (230, 74, 34), (230, 74, 34), (245, 155, 66), (245, 155, 66), (255, 255, 255)]
                 spark.render(self.outline_display, random.choice(self.colors), offset=render_scroll)
                 if kill:
                     self.sparks.remove(spark)
@@ -226,6 +247,18 @@ class Game:
 
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2,
                                   random.random() * self.screenshake - self.screenshake / 2)
+
+            if self.transition:
+                transition_surf = pygame.Surface(self.display.get_size())
+                transition_surf.fill((255, 255, 255))
+                pygame.draw.circle(transition_surf, (0, 0, 0),
+                                   (self.player.rect().centerx - render_scroll[0], self.player.rect().centery - render_scroll[1]),
+                                   (abs(self.transition) + 20) * 3)
+                pygame.draw.circle(transition_surf, (255, 255, 255),
+                                   (self.player.rect().centerx - render_scroll[0], self.player.rect().centery - render_scroll[1]),
+                                   (abs(self.transition)) * 4)
+                transition_surf.set_colorkey((255, 255, 255))
+                self.outline_display.blit(transition_surf, (0, 0))
 
             self.display.blit(self.outline_display, (0, 0))
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), screenshake_offset)
